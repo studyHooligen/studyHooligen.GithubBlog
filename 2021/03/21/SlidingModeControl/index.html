@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="description" content="奇点博客——博文内容涵盖：自动化控制、硬件设计、嵌入式软件、情感、金融" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    滑膜控制器 |  Singularity-blog
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/S-favicon.ico" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+
+<link rel="alternate" href="/atom.xml" title="Singularity-blog" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  
+  <div id="app">
+    <main class="content on">
+      <section class="outer">
+  <article id="post-SlidingModeControl" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  滑膜控制器
+</h1>
+ 
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2021/03/21/SlidingModeControl/" class="article-date">
+  <time datetime="2021-03-21T13:00:50.000Z" itemprop="datePublished">2021-03-21</time>
+</a>
+      
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E6%8E%A7%E5%88%B6%E6%8A%80%E6%9C%AF/">控制技术</a>
+  </div>
+
+      
+      
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">2k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">8 min</span>
+        </span>
+    </span>
+</div>
+
+      
+    </div>
+    
+
+    
+    
+    <div class="tocbot"></div>
+
+
+
+
+
+    
+
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+
+      
+      <blockquote>
+<p>滑模控制（SMC：sliding mode control）是一种相当简单而且控制性能优越的控制方法，但是绝大多数工程师在做过程控制时还是只考虑PID控制。笔者将以初学者的角度讨论滑膜控制器，并加以适当的工程实战进行检验</p>
+</blockquote>
+<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>滑模控制本质上是非线性控制的一种，简单的说，它的非线性表现为控制的不连续性，即系统的“结构”不固定（稳态是有振荡的），可以在动态过程中根据系统当前的状态有目的地不断变化，迫使系统按照预定“滑动模态”的状态轨迹运动。</p>
+<p>它的控制效果优越体现在哪里呢？主要是两点：</p>
+<p>1、滑动模态可以进行设计，调节的参数少，响应速度快。</p>
+<p>2、对扰动不灵敏。什么是干扰？如果你的机器好端端地在工作，突然来了一个熊孩子拿起一钉锤就是一顿敲；或者工厂附近有高铁，每隔一段时间地面就要抖两下。滑模控制对扰动有很强的抑制能力，这对于在复杂环境工作下的机器来说非常友好。</p>
+<h2 id="常用趋近率"><a href="#常用趋近率" class="headerlink" title="常用趋近率"></a>常用趋近率</h2><a id="more"></a>
+
+<blockquote>
+<p>为了方便后续随时查询，笔者将趋近率放在了推导的前面。初读者可跳至下一节阅读完毕然后回头</p>
+</blockquote>
+<ul>
+<li>等速趋近率<br>  $$<br>  \dot{s} = -\epsilon\cdot \text{sign}(s), \epsilon\gt 0<br>  $$</li>
+<li>指数趋近率<br>  $$<br>  \dot{s} = -\epsilon\cdot \text{sign}(s)-p s; \epsilon,p\gt 0<br>  $$</li>
+<li>幂次趋近率<br>  $$<br>  \dot{s} = -\epsilon|s|^{\alpha}\cdot\text{sign}(s) \\<br>  \epsilon &gt;0,1&gt;\alpha&gt;0<br>  $$</li>
+<li>一般趋近率<br>  $$<br>  \dot{s} = -\epsilon\cdot \text{sign}(s)-f(s)<br>  $$</li>
+</ul>
+<h2 id="原理分析"><a href="#原理分析" class="headerlink" title="原理分析"></a>原理分析</h2><p>首先考虑一个非线性系统：</p>
+<p>$$<br>\dot{x} = f(x) + u<br>$$</p>
+<p>u是我们设计的控制器的对系统的作用量</p>
+<p>$$<br>u = \dot{x_d}+K\cdot e +\rho \cdot \text{sgn}(e)<br>$$</p>
+<blockquote>
+<p>注意这边的<br>  $$<br>    \rho = \rho(x)&gt;f(x)<br>    $$<br>是一个函数，值必须大于系统函数</p>
+</blockquote>
+<p>则为了评估控制效果，我们引出误差量：</p>
+<p>$$<br>e = x_d -x<br>$$</p>
+<p>则易有：</p>
+<p>$$<br>\dot{e} = \dot{x_d} -\dot{x}=\dot{x_d} - f(x) -u \\<br>\dot{e} = -f(x)-K\cdot e - \rho \cdot \text{sgn}(e)<br>$$</p>
+<p>考虑一个函数：</p>
+<p>$$<br>V(t) = V(e) = \frac{1}{2} e^2<br>$$</p>
+<p>那么</p>
+<p>$$<br>\dot{V}(e) = e\cdot \dot{e} \\<br>=e\cdot [\dot{x_d}-f(x)-u]<br>$$</p>
+<p>代入u可得：</p>
+<p>$$<br>\dot{V}(e) = e\cdot [-f(x)-K\cdot e -\rho \cdot \text{sgn}(e)] \\<br>= -e\cdot f(x)-K\cdot e^2 - \rho e\cdot \text{sgn}(e) \\<br>\le |e|\cdot|f(x)|-K\cdot e^2 - \rho e\cdot \text{sgn}(e) \\<br>\le |e|\cdot\rho-K\cdot e^2 - \rho e\cdot \text{sgn}(e) \\<br>\because e\cdot \text{sgn}(e) = |e| \\<br>\therefore \dot{V}(e) \le -K\cdot e^2 = -2K\cdot V(e)<br>$$</p>
+<p>让我们使用一个非负项来把上不等式转为等式求解：</p>
+<p>$$<br>\because S(t) \ge 0 \\<br>\therefore \dot{V}(e) + 2K\cdot V(e) \le 0 \\<br>\Rightarrow \dot{V}(e) + 2K\cdot V(e) +S(t) = 0<br>$$</p>
+<p>求解这个一阶微分方程可得</p>
+<p>$$<br>\frac{dV(e)}{dt} +2K\cdot V(e) = -S(t) \\<br>\Rightarrow V(t) = V(0)\cdot e^{-2Kt} - e^{-2Kt} \cdot \int^t_0 e^{2K\tau}S(\tau) d\tau<br>$$</p>
+<p>观察上解最后一项，显然是恒正的，那么</p>
+<p>$$<br>V(t) \le V(0)\cdot e^{-2Kt} \\<br>\Rightarrow \frac{1}{2}e^2(t) \le \frac{1}{2} e^2(0)\cdot e^{-2Kt}<br>$$</p>
+<p>哦吼！🚀系统误差是以指数衰减的！！！</p>
+<p>$$<br>|e(t)| \le |e(0)| \cdot e^{-Kt}<br>$$</p>
+<h3 id="滑膜控制的底层设计原理"><a href="#滑膜控制的底层设计原理" class="headerlink" title="滑膜控制的底层设计原理"></a>滑膜控制的底层设计原理</h3><p>上面推了那么一会儿得出了个不错的结论，这时回头一想，哎嘿🤔这东西从一开始就不对劲！为什么上面推导过程中能想到把u设成</p>
+<p>$$<br>u = \dot{x_d}+K\cdot e +\rho \cdot \text{sgn}(e)<br>$$</p>
+<blockquote>
+<p>以下内容皆为笔者个人学习理解，欢迎指正</p>
+</blockquote>
+<p>稍加变换</p>
+<p>$$<br>u = \dot{x_d} + \dot{e} \\<br>\dot{e} = K\cdot e +\rho \cdot \text{sgn}(e)<br>$$</p>
+<p>是不是很眼熟？对🎉这就是趋近率（上面列出的指数趋近率，让我们先不讨论正负号问题）</p>
+<p>OK，接下来加入另一个莫名其妙的点，为什么V(t)函数要设计成那样？让我们引入一个重要的家喻户晓的控制原理——Lyapunov函数：</p>
+<p>$$<br>\begin{cases}<br>\lim_{|e|\to \infty} V = \infty \\<br>\dot{V} \lt 0, &amp; e\not ={0}<br>\end{cases}<br>\Rightarrow \lim_{t\to \infty} e = 0<br>$$</p>
+<blockquote>
+<p>意思就是只要一个函数V(e,t)在输入e无穷大的时候无穷大，e不为0的时候一阶导数总为负数，那么这个函数V经过一段时间必会收敛到0。</p>
+</blockquote>
+<p>那么如果让我们寻找最简单最简单的V形式就是：</p>
+<p>$$<br>V = \frac{1}{2} e^2<br>$$</p>
+<p>因为太显然了嘛</p>
+<p>$$<br>\Rightarrow \begin{cases}<br>    \lim_{|e|\to \infty} \frac{1}{2} e^2 = \infty \\<br>    \dot{V} = e\dot{e}<br>\end{cases}<br>$$</p>
+<p>那随便找一个趋近率中最普通的等速趋近率</p>
+<p>$$<br>\dot{e} = -\epsilon \cdot \text{sgn}(e) \\<br>\Rightarrow \dot{V} = e\dot{e} = -e\epsilon\cdot\text{sgn}(e) \lt 0<br>$$</p>
+<p>太显然满足Lyapunov函数条件了，其他的趋近率随便一代进去都可以发现是符合要求的</p>
+<h3 id="“滑膜”怎么滑的"><a href="#“滑膜”怎么滑的" class="headerlink" title="“滑膜”怎么滑的"></a>“滑膜”怎么滑的</h3><p>让我们找回一个前面原理分析时的公式</p>
+<p>$$<br>\dot{e} = -f(x)-K\cdot e - \rho \cdot \text{sgn}(e)<br>$$</p>
+<p>这时候就能看到相平面上的一条滑膜面</p>
+<p>$$<br>\dot{e} = -K\cdot e<br>$$</p>
+<p>让我们把它画出来，就像这样</p>
+<p><img src="https://gitee.com/studyHooligen/blogImage/raw/master/20210322/20210322-SMC-01.jpg" alt="SlidingMode"></p>
+<p>显然在滑膜面上的任意一点（比如C和E点）都会滑向O点；而面外的点，由于</p>
+<p>$$<br>\rho = \rho(x)&gt;f(x)<br>$$</p>
+<p>所以由系统函数项和控制项组成的</p>
+<p>$$<br>-f(x) - \rho \cdot \text{sgn}(e)<br>$$</p>
+<p>必使得滑膜面外的状态（如A、B和D点）迅速滑至滑膜面上，然后收敛</p>
+<blockquote>
+<p>说明：以上所有的分析中系统函数是一个普通函数，即SMC即可以用于线性也可以用于非线性系统</p>
+</blockquote>
+<h2 id="设计一个滑膜控制器"><a href="#设计一个滑膜控制器" class="headerlink" title="设计一个滑膜控制器"></a>设计一个滑膜控制器</h2><blockquote>
+<p>当然在实际设计中，是有其他实际指标要我们考虑的，比如收敛时间。让我们以一个例子来体现</p>
+</blockquote>
+<p>假设现在有一个系统：</p>
+<p>$$<br>\dot{x_1} = x_2 \\<br>\dot{x_2} = u<br>$$</p>
+<p>设计滑膜面为：</p>
+<p>$$<br>s = cx_1 + x_2 \\<br>\dot{s} = c\dot{x_1} + \dot{x_2} = cx_2 + u = -\epsilon\cdot \text{sgn}(s)<br>$$</p>
+<p>控制器为：</p>
+<p>$$<br>u = -cx_2 -\epsilon\cdot \text{sgn}(s)<br>$$</p>
+<p>显然这样的一个滑膜控制器必是收敛的，但是注意Lyapunov函数是：</p>
+<p>$$<br>\lim_{t\to\infty}s=0<br>$$</p>
+<p>要是我们的系统通过100秒才收敛好，这是没意义的丫🌩因为我们的控制系统常常是要秒级甚至毫秒级的响应速度。所以我们需要改造升级，就改进一下Lyapunov函数第二个条件吧</p>
+<p>$$<br>\dot{V} \le -\alpha V^{\frac{1}{2}}<br>$$</p>
+<p>那么会有什么后果呢？</p>
+<p>$$<br>\frac{dV}{dt}\le -\alpha V^{\frac{1}{2}}<br>\\ \Rightarrow<br>\int_0^t V^{-\frac{1}{2}} dV \le -\alpha t<br>\\<br>V(t)^{\frac{1}{2}}\le -\frac{1}{2}\alpha t +V^{\frac{1}{2}}(0)<br>$$</p>
+<p>所以显然由开方的非负性可知系统有最长稳定时间</p>
+<p>$$<br>\because 0\le V(t)^{\frac{1}{2}}<br>\\ \therefore<br>t_r = \frac{V^{\frac{1}{2}}(0)}{\frac{1}{2}\alpha}<br>$$</p>
+<p>则我们可以对控制器参数进行合理调整：</p>
+<p>$$<br>\begin{cases}<br>    V = \frac{1}{2}s^2 \\<br>    \dot{V} = s\dot{s} = -\epsilon s \cdot \text{sgn}(s) \\<br>    \dot{V} \le -\alpha V^{\frac{1}{2}}<br>\end{cases}<br>\\ \Rightarrow<br>-\epsilon s \cdot \text{sgn}(s) \le -\alpha V^{\frac{1}{2}}=-\frac{\alpha s}{\sqrt{2}}<br>\\<br>\epsilon \ge \frac{\alpha}{\sqrt{2}}<br>$$</p>
+<h3 id="SMC抗干扰性能分析"><a href="#SMC抗干扰性能分析" class="headerlink" title="SMC抗干扰性能分析"></a>SMC抗干扰性能分析</h3><p>假设上系统加入噪声项变为</p>
+<p>$$<br>\dot{x_1} = x_2 \\<br>\dot{x_2} = u+d<br>$$</p>
+<p>滑模设计和控制器设计不变</p>
+<p>$$<br>s = cx_1+x_2<br>\\<br>u = -cx_2 -\epsilon\cdot \text{sgn}(s)<br>$$</p>
+<p>但是</p>
+<p>$$<br>\dot{s} = c\dot{x_1}+\dot{x_2} = cx_2+u+d<br>\\<br>= d-\epsilon\cdot \text{sgn}(s)<br>$$</p>
+<p>则Lyapunov函数有</p>
+<p>$$<br>\dot{V} = s\dot{s}=s(d-\epsilon\cdot \text{sgn}(s))<br>\\ \le -s\epsilon\cdot\text{sgn}(s)+sd<br>\\<br>=-|s|\cdot(\epsilon-L)<br>$$</p>
+<blockquote>
+<p>L表示干扰的上界</p>
+</blockquote>
+<p>考虑上面讨论的时间响应</p>
+<p>$$<br>\dot{V} \le -\alpha V^{\frac{1}{2}} = -\alpha\frac{s}{\sqrt{2}}<br>$$</p>
+<p>可联立求得：</p>
+<p>$$<br>\epsilon &gt; L +\frac{\alpha}{\sqrt{2}}<br>$$</p>
+<p>理解：Lyapunov函数既满足有限时间收敛又负定，所以系统仍按照先滑动到滑模面，再沿滑模面做指数趋近运动。干扰没有对系统造成影响。</p>
+<h2 id="滑膜控制器平衡小车"><a href="#滑膜控制器平衡小车" class="headerlink" title="滑膜控制器平衡小车"></a>滑膜控制器平衡小车</h2><blockquote>
+<p>努力更新中…</p>
+</blockquote>
+
+      
+      <!-- reward -->
+      
+      <div id="reward-btn">
+        Donate
+      </div>
+      
+    </div>
+    
+    
+      <!-- copyright -->
+      
+        <div class="declare">
+          <ul class="post-copyright">
+            <li>
+              <i class="ri-copyright-line"></i>
+              <strong>Copyright： </strong>
+              Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+            </li>
+          </ul>
+        </div>
+        
+    <footer class="article-footer">
+      
+          
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://yoursite.com/2021/03/21/SlidingModeControl/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%8E%A7%E5%88%B6%E5%8E%9F%E7%90%86/" rel="tag">控制原理</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%BB%91%E8%86%9C%E6%8E%A7%E5%88%B6/" rel="tag">滑膜控制</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%9D%9E%E7%BA%BF%E6%80%A7%E7%B3%BB%E7%BB%9F/" rel="tag">非线性系统</a></li></ul>
+
+
+    </footer>
+
+  </div>
+
+  
+  
+  <nav class="article-nav">
+    
+      <a href="/2021/03/23/crossTool-install/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            安装和配置Linux交叉编译工具
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2021/02/14/photoCompressionPython/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">Python开发图片压缩小工具</div>
+      </a>
+    
+  </nav>
+
+
+  
+
+  
+
+  
+  
+<div class="gitalk" id="gitalk-container"></div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1.6.2/dist/gitalk.css">
+
+
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1.6.2/dist/gitalk.min.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.10.0/js/md5.min.js"></script>
+
+<script type="text/javascript">
+  var gitalk = new Gitalk({
+    clientID: 'cd4d750c727d92fb7436',
+    clientSecret: '4a001cb21bdedc1c0a70af3321e24005223e0ea2',
+    repo: 'studyhooligen.github.io',
+    owner: 'studyhooligen',
+    admin: ['studyhooligen'],
+    // id: location.pathname,      // Ensure uniqueness and length less than 50
+    id: md5(location.pathname),
+    distractionFreeMode: false,  // Facebook-like distraction free mode
+    pagerDirection: 'last'
+  })
+
+  gitalk.render('gitalk-container')
+</script>
+
+  
+  
+  
+
+</article>
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2021
+        <i class="ri-heart-fill heart_icon"></i> StudyHooligen
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+<div class="todark" id="todark">
+  <i class="ri-moon-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/S-logo-side.svg" alt="Singularity-blog"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/%E6%83%85%E9%9B%A8%E6%91%98">情雨摘</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/aboutMe">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://s1.ax1x.com/2020/05/26/tP6UwF.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://s1.ax1x.com/2020/05/26/tP6VQP.png">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Subtitle -->
+
+<script>
+  try {
+    var typed = new Typed("#subtitle", {
+      strings: ['面朝大海，春暖花开', '愿你一生努力，一生被爱', '想要的都拥有，得不到的都释怀'],
+      startDelay: 0,
+      typeSpeed: 200,
+      loop: true,
+      backSpeed: 100,
+      showCursor: true
+    });
+  } catch (err) {
+    console.log(err)
+  }
+</script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+
+    
+
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+
+<script src="/js/clickLove.js"></script>
+
+
+<!-- ClickBoom -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+
+    
+    <div id="music">
+    
+    
+    
+    <iframe frameborder="no" border="1" marginwidth="0" marginheight="0" width="200" height="86"
+        src="//music.163.com/outchain/player?type=2&id=1357887419&auto=0&height=66"></iframe>
+</div>
+
+<style>
+    #music {
+        position: fixed;
+        right: 15px;
+        bottom: 0;
+        z-index: 998;
+    }
+</style>
+    
+  </div>
+</body>
+
+</html>

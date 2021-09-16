@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="description" content="奇点博客——博文内容涵盖：自动化控制、硬件设计、嵌入式软件、情感、金融" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    为Python扩展C/C++接口 |  Singularity-blog
+  </title>
+  <meta name="generator" content="hexo-theme-ayer">
+  
+  <link rel="shortcut icon" href="/S-favicon.ico" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+  
+  
+
+  
+
+<link rel="alternate" href="/atom.xml" title="Singularity-blog" type="application/atom+xml">
+</head>
+
+</html>
+
+<body>
+  
+  <div id="app">
+    <main class="content on">
+      <section class="outer">
+  <article id="post-developPythonWithCppModule" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  为Python扩展C/C++接口
+</h1>
+ 
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/09/04/developPythonWithCppModule/" class="article-date">
+  <time datetime="2020-09-04T03:28:32.000Z" itemprop="datePublished">2020-09-04</time>
+</a>
+      
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E7%BC%96%E7%A8%8B%E6%8A%80%E8%83%BD/">编程技能</a>
+  </div>
+
+      
+      
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">1.6k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">6 min</span>
+        </span>
+    </span>
+</div>
+
+      
+    </div>
+    
+
+    
+    
+    <div class="tocbot"></div>
+
+
+
+
+
+    
+
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+
+      
+      <blockquote>
+<p>前言：身为脚本语言的Python受到万千AI开发者的青睐，而C和C++以优秀的执行效率收到嵌入式工程师和游戏开发者的热爱，将两者结合就将更加无敌了呢🚀</p>
+<blockquote>
+<p>本文主要分享将C++函数导出为Python扩展模块，供python调用，以同时具有py的便利性和C艹的高效性</p>
+</blockquote>
+</blockquote>
+<h2 id="DEMO"><a href="#DEMO" class="headerlink" title="DEMO"></a>DEMO</h2><p>首先，可以想到最基础的文件至少有3个：</p>
+<ul>
+<li>C++目标函数源文件</li>
+<li>Python主程序脚本文件</li>
+<li>编译链接文件</li>
+</ul>
+<h3 id="首先来看看高效的C-源文件吧"><a href="#首先来看看高效的C-源文件吧" class="headerlink" title="首先来看看高效的C++源文件吧"></a>首先来看看高效的C++源文件吧</h3><blockquote>
+<p>childModule.cpp</p>
+<blockquote>
+<p>先直接贴上代码😜别跑！说明就跟在后面</p>
+</blockquote>
+</blockquote>
+<a id="more"></a>
+
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/********必须先导入Py的头文件**********/</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> PY_SSIZE_T_CLEAN</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;Python.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt; //IO流头文件</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string&gt;   //字符串头文件</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**		@brief		打印数据函数</span></span><br><span class="line"><span class="comment">  *		@note		这是原函数，可以是任意想被调用的接口</span></span><br><span class="line"><span class="comment">  *		@author		江榕煜（2020.9.4）</span></span><br><span class="line"><span class="comment">  *		@param		age：年龄</span></span><br><span class="line"><span class="comment">  *     @param      gender：性别</span></span><br><span class="line"><span class="comment">  *     @param      glass：眼镜</span></span><br><span class="line"><span class="comment">  *		@return		执行结果状态代码</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">printStringFromPython</span><span class="params">(<span class="keyword">float</span> age, <span class="keyword">bool</span> gender,<span class="keyword">bool</span> glass)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"input age:"</span>&lt;&lt;age&lt;&lt;<span class="built_in">std</span>::<span class="built_in">endl</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span>(gender)</span><br><span class="line">        <span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"boy"</span>&lt;&lt;<span class="built_in">std</span>::<span class="built_in">endl</span>;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"girl"</span>&lt;&lt;<span class="built_in">std</span>::<span class="built_in">endl</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span>(glass)</span><br><span class="line">        <span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"with glass"</span>&lt;&lt;<span class="built_in">std</span>::<span class="built_in">endl</span>;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"without glass."</span>&lt;&lt;<span class="built_in">std</span>::<span class="built_in">endl</span>;    </span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="number">10010</span>;   <span class="comment">//随便返回个啥吧hhh</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*******接下来开始导出到Python模块************/</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**		@brief		封装原函数接口至python数据接口</span></span><br><span class="line"><span class="comment">  *		@note		函数形式需要类似</span></span><br><span class="line"><span class="comment">  *		@author		江榕煜（2020.9.4）</span></span><br><span class="line"><span class="comment">  *		@param		self：模块对象指针</span></span><br><span class="line"><span class="comment">  *     @param      args：python调用函数时传入的参数元组对象指针</span></span><br><span class="line"><span class="comment">  *		@return		retval：将封装的原函数返回值转python对象后返回</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> PyObject * <span class="title">Export_printStringFromPython</span><span class="params">(PyObject * self,PyObject * args)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">float</span>   year;   <span class="comment">//年龄</span></span><br><span class="line">    <span class="keyword">int</span>     gender; <span class="comment">//性别</span></span><br><span class="line">    <span class="keyword">int</span>     glass;  <span class="comment">//眼镜</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(!PyArg_ParseTuple(args,<span class="string">"fii"</span>,&amp;year,&amp;gender,&amp;glass))  <span class="comment">//python中的参数元组转C变量</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>;    <span class="comment">//转换失败</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">//正式执行原函数，并且将返回值进行转换</span></span><br><span class="line">    PyObject * retval = (PyObject *)Py_BuildValue(<span class="string">"i"</span>,printStringFromPython(year,gender,glass));</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> retval;  <span class="comment">//返回python对象结果</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**		@brief		该数组中给定最终导出的功能list</span></span><br><span class="line"><span class="comment">  *		@note		注意内容格式要满足PyMethodDef要求</span></span><br><span class="line"><span class="comment">  *		@author		江榕煜（2020.9.4）</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="keyword">static</span> PyMethodDef ExportMethods[]=&#123;</span><br><span class="line">    <span class="comment">//&#123;"导出的python接口名字","封装后的函数接口","参数格式","说明"&#125;</span></span><br><span class="line">    &#123;<span class="string">"printString2C"</span>,Export_printStringFromPython,METH_VARARGS,<span class="string">"Print something from python with C++"</span>&#125;,</span><br><span class="line">    &#123;<span class="literal">NULL</span>,<span class="literal">NULL</span>,<span class="number">0</span>,<span class="literal">NULL</span>&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**		@brief		导出的自定义模块信息说明</span></span><br><span class="line"><span class="comment">  *		@note		无</span></span><br><span class="line"><span class="comment">  *		@author		江榕煜（2020.9.4）</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">PyModuleDef</span> <span class="title">MyVoiceModule</span> = &#123;</span></span><br><span class="line">    PyModuleDef_HEAD_INIT,  <span class="comment">//开头必须是这个东西</span></span><br><span class="line">    <span class="string">"MyVoice"</span>,      <span class="comment">//模块名字</span></span><br><span class="line">    <span class="literal">NULL</span>,           <span class="comment">/* module documentation, may be NULL */</span></span><br><span class="line">    <span class="number">-1</span>,             <span class="comment">/* size of per-interpreter state of the module,</span></span><br><span class="line"><span class="comment">                    or -1 if the module keeps state in global variables. */</span></span><br><span class="line">    ExportMethods   <span class="comment">//导出功能List变量</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**		@brief		模块初始化接口</span></span><br><span class="line"><span class="comment">  *		@note		该接口有命名要求的！</span></span><br><span class="line"><span class="comment">  *		@author		江榕煜（2020.9.4）</span></span><br><span class="line"><span class="comment">  *		@param		none</span></span><br><span class="line"><span class="comment">  *		@return		python模块初始化对象</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="function">PyMODINIT_FUNC <span class="title">PyInit_MyVoice</span><span class="params">(<span class="keyword">void</span>)</span>    <span class="comment">//初始化函数必须命名为 PyInit_name()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> PyModule_Create(&amp;MyVoiceModule); <span class="comment">//初始化给定的模块对象</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先，在文件入口就是python头文件的声明，要注意，这两句必须要加在最前面！（官方理由是，放后面可能内置的类型会bug）</p>
+<p>接着就是直接定义正常情况下的C++函数内容了</p>
+<p>然后就到重点了，移植接口至自定义扩展python模块，笔者总结为了4步：</p>
+<ul>
+<li>函数IO接口对象转换封装</li>
+<li>函数接口属性基础配置</li>
+<li>自定义模块属性设置</li>
+<li>模块初始化</li>
+</ul>
+<p>由于Python的数据结构和C++不一样（太显然了），所以要对参数接口进行转换，当python调用函数时，入参和回参都是PyObject类型，回头看看接口转换的代码：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> PyObject * <span class="title">Export_printStringFromPython</span><span class="params">(PyObject * self,PyObject * args)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">float</span>   year;   <span class="comment">//年龄</span></span><br><span class="line">    <span class="keyword">int</span>     gender; <span class="comment">//性别</span></span><br><span class="line">    <span class="keyword">int</span>     glass;  <span class="comment">//眼镜</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(!PyArg_ParseTuple(args,<span class="string">"fii"</span>,&amp;year,&amp;gender,&amp;glass))  <span class="comment">//python中的参数元组转C变量</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>;    <span class="comment">//转换失败</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">//正式执行原函数，并且将返回值进行转换</span></span><br><span class="line">    PyObject * retval = (PyObject *)Py_BuildValue(<span class="string">"i"</span>,printStringFromPython(year,gender,glass));</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> retval;  <span class="comment">//返回python对象结果</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>比如现在要调用函数为:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MyVoice.printString2C(<span class="number">5.32</span>,<span class="number">1</span>,<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>那么传入的就是一个<a href="https://www.runoob.com/python3/python3-tuple.html" target="_blank" rel="noopener">元组</a>,内容为：(5.32,1,0)。则调用PyArg_ParseTuple将数据转换为C/C++数据，用法类似于scanf。第一个参数传入的就是PyObject*类型（参数元组args），第二个参数为转换的数据内容转换符，接着就是对应转换符的C数据变量指针。</p>
+<blockquote>
+<p>内容转换符此处给出几个常用的类型，具体的转换符文末给出了官方参考链接</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>转换符</th>
+<th>Python类型</th>
+<th align="right">C/C++类型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>i</td>
+<td>整型</td>
+<td align="right">int</td>
+</tr>
+<tr>
+<td>l</td>
+<td>整型</td>
+<td align="right">long int</td>
+</tr>
+<tr>
+<td>f</td>
+<td>浮点数</td>
+<td align="right">float</td>
+</tr>
+<tr>
+<td>d</td>
+<td>浮点数</td>
+<td align="right">double</td>
+</tr>
+<tr>
+<td>p</td>
+<td>任意python值</td>
+<td align="right">bool</td>
+</tr>
+</tbody></table>
+<p>当调用的接口不是纯执行类函数时，需要返回参数或者别的附加参数，则使用Py_BuildValue将需要的参数转换回PyObject类型，用法类似于print，使用的转换符同PyArg_ParseTuple。</p>
+<p>接着只需要在初始化函数中把接口属性数组和模块属性变量初始化好，调用PyModule_Create生成模块数据文件。注意，初始化函数命名必须为PyMODINIT_FUNC PyInit_&lt;moduleName&gt;(void)，在后续调用模块时，python解释器将自动调用该初始化函数得到模块对象。</p>
+<h2 id="接着是编译源文件为Python库"><a href="#接着是编译源文件为Python库" class="headerlink" title="接着是编译源文件为Python库"></a>接着是编译源文件为Python库</h2><blockquote>
+<p>setup.py</p>
+<blockquote>
+<p>该脚本文件使用python自带的distutils工具构建C/C++扩展包</p>
+</blockquote>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> distutils.core <span class="keyword">import</span> setup, Extension <span class="comment">#导入distutils模块</span></span><br><span class="line"></span><br><span class="line"><span class="comment">##-------编译设置变量------------</span></span><br><span class="line">module1 = Extension(<span class="string">'MyVoice'</span>,  <span class="comment">#模块名字</span></span><br><span class="line">                    sources = [<span class="string">'childModule.cpp'</span>]) <span class="comment">#源文件</span></span><br><span class="line"></span><br><span class="line"><span class="comment">##----------编译-----------</span></span><br><span class="line">setup (name = <span class="string">'MyVoice'</span>,    <span class="comment">#模块名字</span></span><br><span class="line">       version = <span class="string">'1.0'</span>,     <span class="comment">#发行时的版本</span></span><br><span class="line">       description = <span class="string">'This is a demo package'</span>,  <span class="comment">#发行时的说明</span></span><br><span class="line">       ext_modules = [module1]) <span class="comment">#给实现定义好的编译设置变量</span></span><br></pre></td></tr></table></figure>
+
+<p>这一部分就直接参考笔者给定的注释修改后，和C源文件放置在一个目录下，运行</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py setup.py build</span><br></pre></td></tr></table></figure>
+
+<p>会在目录下生成的build文件夹中生成相应的库</p>
+<h3 id="调用库"><a href="#调用库" class="headerlink" title="调用库"></a>调用库</h3><blockquote>
+<p>fatherApp.py</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"></span><br><span class="line"><span class="comment">#导入指定路径模块</span></span><br><span class="line">sys.path.append(<span class="string">r".\build\lib.win-amd64-3.7"</span>)</span><br><span class="line"><span class="keyword">import</span> MyVoice</span><br><span class="line"></span><br><span class="line"><span class="comment">#执行自定义模块的函数</span></span><br><span class="line">MyVoice.printString2C(<span class="number">5.32</span>,<span class="number">1</span>,<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="测试结果"><a href="#测试结果" class="headerlink" title="测试结果"></a>测试结果</h2><p><img src="https://s1.ax1x.com/2020/09/04/wkS1u4.png" alt="testRes"></p>
+<h2 id="开发环境"><a href="#开发环境" class="headerlink" title="开发环境"></a>开发环境</h2><ul>
+<li>硬件平台：Intel-X64</li>
+<li>操作系统：Windows10-Pro</li>
+<li>IDE：Visual Studio Code</li>
+<li>Python解释器：V3.7.5</li>
+<li>C++编译器：gcc version 8.1.0 (x86_64-posix-seh-rev0, Built by MinGW-W64 project)</li>
+</ul>
+<h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2><ul>
+<li><a href="https://docs.python.org/3/extending/extending.html" target="_blank" rel="noopener">python官方示例</a></li>
+<li><a href="https://docs.python.org/3/extending/building.html" target="_blank" rel="noopener">python官方build说明</a></li>
+<li><a href="https://docs.python.org/3/extending/windows.html" target="_blank" rel="noopener">python官方build说明window版</a></li>
+<li><a href="https://docs.python.org/3/c-api/arg.html#c.PyArg_ParseTuple" target="_blank" rel="noopener">python与C/c++参数互相解析</a></li>
+</ul>
+
+      
+      <!-- reward -->
+      
+      <div id="reward-btn">
+        Donate
+      </div>
+      
+    </div>
+    
+    
+      <!-- copyright -->
+      
+        <div class="declare">
+          <ul class="post-copyright">
+            <li>
+              <i class="ri-copyright-line"></i>
+              <strong>Copyright： </strong>
+              Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+            </li>
+          </ul>
+        </div>
+        
+    <footer class="article-footer">
+      
+          
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://yoursite.com/2020/09/04/developPythonWithCppModule/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/C-C/" rel="tag">C/C++</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%B7%B7%E5%90%88%E7%BC%96%E7%A8%8B/" rel="tag">混合编程</a></li></ul>
+
+
+    </footer>
+
+  </div>
+
+  
+  
+  <nav class="article-nav">
+    
+      <a href="/2020/09/04/codeTemplateForVScode/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            VScode中使用代码模板
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2020/09/01/BasicInformationTheory/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">基础信息论知识汇总</div>
+      </a>
+    
+  </nav>
+
+
+  
+
+  
+
+  
+  
+<div class="gitalk" id="gitalk-container"></div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1.6.2/dist/gitalk.css">
+
+
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1.6.2/dist/gitalk.min.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.10.0/js/md5.min.js"></script>
+
+<script type="text/javascript">
+  var gitalk = new Gitalk({
+    clientID: 'cd4d750c727d92fb7436',
+    clientSecret: '4a001cb21bdedc1c0a70af3321e24005223e0ea2',
+    repo: 'studyhooligen.github.io',
+    owner: 'studyhooligen',
+    admin: ['studyhooligen'],
+    // id: location.pathname,      // Ensure uniqueness and length less than 50
+    id: md5(location.pathname),
+    distractionFreeMode: false,  // Facebook-like distraction free mode
+    pagerDirection: 'last'
+  })
+
+  gitalk.render('gitalk-container')
+</script>
+
+  
+  
+  
+
+</article>
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2020-2021
+        <i class="ri-heart-fill heart_icon"></i> StudyHooligen
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        <span>
+  <span><i class="ri-user-3-fill"></i>Visitors:<span id="busuanzi_value_site_uv"></span></s>
+  <span class="division">|</span>
+  <span><i class="ri-eye-fill"></i>Views:<span id="busuanzi_value_page_pv"></span></span>
+</span>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+<div class="todark" id="todark">
+  <i class="ri-moon-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/S-logo-side.svg" alt="Singularity-blog"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/%E6%83%85%E9%9B%A8%E6%91%98">情雨摘</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/aboutMe">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://s1.ax1x.com/2020/05/26/tP6UwF.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://s1.ax1x.com/2020/05/26/tP6VQP.png">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Subtitle -->
+
+<script>
+  try {
+    var typed = new Typed("#subtitle", {
+      strings: ['面朝大海，春暖花开', '愿你一生努力，一生被爱', '想要的都拥有，得不到的都释怀'],
+      startDelay: 0,
+      typeSpeed: 200,
+      loop: true,
+      backSpeed: 100,
+      showCursor: true
+    });
+  } catch (err) {
+    console.log(err)
+  }
+</script>
+
+<!-- Tocbot -->
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+<!-- MathJax -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+      tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+  });
+
+  MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.6/unpacked/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script>
+  var ayerConfig = {
+    mathjax: true
+  }
+</script>
+
+<!-- Katex -->
+
+
+    
+
+
+<!-- busuanzi  -->
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<!-- ClickLove -->
+
+
+<script src="/js/clickLove.js"></script>
+
+
+<!-- ClickBoom -->
+
+<!-- CodeCopy -->
+
+
+<link rel="stylesheet" href="/css/clipboard.css">
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+
+
+
+    
+    <div id="music">
+    
+    
+    
+    <iframe frameborder="no" border="1" marginwidth="0" marginheight="0" width="200" height="86"
+        src="//music.163.com/outchain/player?type=2&id=1357887419&auto=0&height=66"></iframe>
+</div>
+
+<style>
+    #music {
+        position: fixed;
+        right: 15px;
+        bottom: 0;
+        z-index: 998;
+    }
+</style>
+    
+  </div>
+</body>
+
+</html>
