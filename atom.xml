@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2021-09-16T11:59:09.709Z</updated>
+  <updated>2021-09-18T04:31:20.061Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -17,21 +17,26 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>神经网络训练优化器</title>
-    <link href="http://yoursite.com/2021/09/16/NeuralNetWork-Optimizer/"/>
-    <id>http://yoursite.com/2021/09/16/NeuralNetWork-Optimizer/</id>
-    <published>2021-09-16T11:57:18.000Z</published>
-    <updated>2021-09-16T11:59:09.709Z</updated>
+    <title>神经网络训练优化器及工具</title>
+    <link href="http://yoursite.com/2021/09/17/NeuralNetWork-Optimizer/"/>
+    <id>http://yoursite.com/2021/09/17/NeuralNetWork-Optimizer/</id>
+    <published>2021-09-17T11:57:18.000Z</published>
+    <updated>2021-09-18T04:31:20.061Z</updated>
     
     <summary type="html">
     
-      
-      
-        
-        
-          &lt;link rel=&quot;stylesheet&quot; class=&quot;aplayer-secondary-style-marker&quot; href=&quot;\assets\css\APlayer.min.css&quot;&gt;&lt;script src=&quot;\assets\js\APlayer.min.js&quot;
-        
-      
+      &lt;blockquote&gt;
+&lt;p&gt;前言：在上一篇&lt;a href=&quot;http://www.singularity-blog.top/2021/09/12/ResNet-Pytorch/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;ResNet实战&lt;/a&gt;博客中，笔者采用的都是最简单的激活函数和梯度下降训练算法，并且在训练到瓶颈期还需要手动停止训练并调整学习率。所以在本篇中我们将讨论训练优化算法和一些自动训练工具。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&quot;Basic：随机梯度下降&quot;&gt;&lt;a href=&quot;#Basic：随机梯度下降&quot; class=&quot;headerlink&quot; title=&quot;Basic：随机梯度下降&quot;&gt;&lt;/a&gt;Basic：随机梯度下降&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;SGD：Stochastic gradient descent&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;这部分属于入门知识，可以看吴恩达老师的课程，讲得非常通俗易懂。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://gitee.com/studyHooligen/blogImage/raw/master/20210917/20210917-NN-1.jpg&quot; alt=&quot;梯度下降&quot;&gt;&lt;/p&gt;
+&lt;p&gt;我们的模型（神经网络）本质上是一组不断调整参数的函数组合而成一个我们想要的复杂函数。而根据微积分和高维空间的知识我们知道，任何函数都存在导数（或Jacobian矩阵）并且都存在凹凸特性。而神经网络的训练就是基于这一点，通过人工设计一个目标损失函数，然后以最小化（或最大化）该函数为目标，不断计算输入数据在该损失上的梯度，并不断迭代寻找到函数最低点（上图）。我们将模型和目标损失函数表示为：&lt;/p&gt;
+&lt;p&gt;$$&lt;br&gt;\text{网络模型：}\hat{Y} = F(X)&lt;br&gt;\\&lt;br&gt;\text{损失函数：}L(\hat{Y},Y)|_{w,b}&lt;br&gt;$$&lt;/p&gt;
+&lt;p&gt;SGD训练参数过程：&lt;/p&gt;
+&lt;p&gt;$$&lt;br&gt;w := w-\alpha\cdot \frac{\partial L}{\partial w}&lt;br&gt;\\&lt;br&gt;b := b-\alpha\cdot \frac{\partial L}{\partial b}&lt;br&gt;$$&lt;/p&gt;
     
     </summary>
     

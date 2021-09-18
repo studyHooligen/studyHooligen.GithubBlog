@@ -11,7 +11,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>
-    神经网络训练优化器 |  Singularity-blog
+    神经网络训练优化器及工具 |  Singularity-blog
   </title>
   <meta name="generator" content="hexo-theme-ayer">
   
@@ -53,7 +53,7 @@
     <header class="article-header">
        
 <h1 class="article-title sea-center" style="border-left:0" itemprop="name">
-  神经网络训练优化器
+  神经网络训练优化器及工具
 </h1>
  
 
@@ -62,8 +62,8 @@
 
     
     <div class="article-meta">
-      <a href="/2021/09/16/NeuralNetWork-Optimizer/" class="article-date">
-  <time datetime="2021-09-16T11:57:18.000Z" itemprop="datePublished">2021-09-16</time>
+      <a href="/2021/09/17/NeuralNetWork-Optimizer/" class="article-date">
+  <time datetime="2021-09-17T11:57:18.000Z" itemprop="datePublished">2021-09-17</time>
 </a>
       
   <div class="article-category">
@@ -77,7 +77,7 @@
         <span class="post-meta-item-icon">
             <i class="ri-quill-pen-line"></i>
             <span class="post-meta-item-text"> Word count:</span>
-            <span class="post-count">12</span>
+            <span class="post-count">1.6k</span>
         </span>
     </span>
 
@@ -86,7 +86,7 @@
         <span class="post-meta-item-icon">
             <i class="ri-book-open-line"></i>
             <span class="post-meta-item-text"> Reading time≈</span>
-            <span class="post-count">1 min</span>
+            <span class="post-count">5 min</span>
         </span>
     </span>
 </div>
@@ -97,6 +97,8 @@
 
     
     
+    <div class="tocbot"></div>
+
 
 
 
@@ -110,8 +112,60 @@
 
       
       <blockquote>
-<p>前言：在上一篇<a href="">ResNet实战</a>博客中</p>
+<p>前言：在上一篇<a href="http://www.singularity-blog.top/2021/09/12/ResNet-Pytorch/" target="_blank" rel="noopener">ResNet实战</a>博客中，笔者采用的都是最简单的激活函数和梯度下降训练算法，并且在训练到瓶颈期还需要手动停止训练并调整学习率。所以在本篇中我们将讨论训练优化算法和一些自动训练工具。</p>
 </blockquote>
+<h2 id="Basic：随机梯度下降"><a href="#Basic：随机梯度下降" class="headerlink" title="Basic：随机梯度下降"></a>Basic：随机梯度下降</h2><blockquote>
+<p>SGD：Stochastic gradient descent</p>
+</blockquote>
+<p>这部分属于入门知识，可以看吴恩达老师的课程，讲得非常通俗易懂。</p>
+<p><img src="https://gitee.com/studyHooligen/blogImage/raw/master/20210917/20210917-NN-1.jpg" alt="梯度下降"></p>
+<p>我们的模型（神经网络）本质上是一组不断调整参数的函数组合而成一个我们想要的复杂函数。而根据微积分和高维空间的知识我们知道，任何函数都存在导数（或Jacobian矩阵）并且都存在凹凸特性。而神经网络的训练就是基于这一点，通过人工设计一个目标损失函数，然后以最小化（或最大化）该函数为目标，不断计算输入数据在该损失上的梯度，并不断迭代寻找到函数最低点（上图）。我们将模型和目标损失函数表示为：</p>
+<p>$$<br>\text{网络模型：}\hat{Y} = F(X)<br>\\<br>\text{损失函数：}L(\hat{Y},Y)|_{w,b}<br>$$</p>
+<p>SGD训练参数过程：</p>
+<p>$$<br>w := w-\alpha\cdot \frac{\partial L}{\partial w}<br>\\<br>b := b-\alpha\cdot \frac{\partial L}{\partial b}<br>$$</p>
+<a id="more"></a>
+
+<blockquote>
+<p>损失函数计算的并不是模型对单个输入数据（样本）的推理结果，而是一批数据，一批数据中样本的个数也就是常说的<code>Batch Size</code>。对于损失函数等可查看笔者先前的这篇<a href="http://www.singularity-blog.top/2021/01/17/NeuralNetwork-Function/" target="_blank" rel="noopener">神经网络常用函数</a></p>
+</blockquote>
+<h2 id="Momentum"><a href="#Momentum" class="headerlink" title="Momentum"></a>Momentum</h2><p>SGD每次的梯度更新都是直接根据当前输入数据进行计算的。现在考虑如下图情况，蓝线为SGD根据在每个转折点计算梯度前进的结果，显然从起始点到最终的最优点（绿色）有很明显的震荡现象。</p>
+<p><img src="https://gitee.com/studyHooligen/blogImage/raw/master/20210917/20210917-NN-2.bmp" alt="梯度下降"></p>
+<p>如果我们的训练可以减小震荡朝着目标点前进，那么就可以减少很多计算量并且可以更稳定地达到目标点，这就是优化算法要做的事情。减小高频震荡？这很容易让我们想到<strong>滤波器</strong>（笔者是电信出身，所以认为这么理解更直观，比什么指数加权平均好理解多了），Momentum就相当于是最简单一阶滤波器（效果如上红线），从数学定义上也确实如此：</p>
+<p>$$<br>v= \beta v +(1-\beta)\frac{\partial L}{\partial w}<br>\\<br>w : = w - \alpha v<br>$$</p>
+<p>如果上面滤波器系数为0，那么相当于直接退化回SGD。</p>
+<h1 id="RMSprop"><a href="#RMSprop" class="headerlink" title="RMSprop"></a>RMSprop</h1><p>这个优化算法相对Momentum的改进，在数学上正如它的名字RMS，把原本的梯度滤波内容改为了均方根：</p>
+<p>$$<br>s = \beta s + (1-\beta)[\frac{\partial L}{\partial w} ]^2<br>\\<br>w:= w -\alpha \frac{\frac{\partial L}{\partial w}}{\sqrt{s+\epsilon}}，\epsilon \to 0<br>$$</p>
+<p>对于其效果的理解，可以把第一个一阶滤波器当作对强度滤波，比如还是上面Momentum例中的模型，显然在纵轴梯度强度比横轴大很多，那么就要削弱纵轴的梯度强度。而第二个参数更新式，通过除去梯度强度滤波器的开方值得到优化后的梯度。</p>
+<blockquote>
+<p>笔者个人认为这个算法不是很好，因为当滤波前梯度本身就比较平滑的时候，考虑一个二维的场，那相当最后算出来的是单位长度、方向只有四个方向（±45°、±135°）的梯度向量</p>
+</blockquote>
+<h2 id="Adam"><a href="#Adam" class="headerlink" title="Adam"></a>Adam</h2><blockquote>
+<p>Adaptive moment estimation</p>
+</blockquote>
+<p>$$<br>v = \beta_1 v +(1-\beta_1)\frac{\partial L}{\partial w}<br>\\<br>s = \beta_2 s + (1-\beta_2)[\frac{\partial L}{\partial w} ]^2<br>\\<br>w:= w -\alpha \frac{v}{\sqrt{s+\epsilon}}，\epsilon \to 0<br>$$</p>
+<p>看完了公式，首先就能感觉到又有点Momentum的味道（式1）又有点RMSprop的味道（式2），事实上确实如此。Adam就是在对梯度方向做滤波的基础上，再对强度做控制。</p>
+<h2 id="好用的工具们"><a href="#好用的工具们" class="headerlink" title="好用的工具们"></a>好用的工具们</h2><p>TIP：接下来的都是以使用pytorch框架为基础</p>
+<h3 id="数据可视化"><a href="#数据可视化" class="headerlink" title="数据可视化"></a>数据可视化</h3><p>在上一篇<a href="http://www.singularity-blog.top/2021/09/12/ResNet-Pytorch/" target="_blank" rel="noopener">ResNet</a>博客中其实就已经简单的用到了<code>TensorBoard</code>用来可视化训练效果。这个工具原生是在<code>TensorFlow</code>框架下的，由于太好用所以现在适配到pytorch了。</p>
+<p>首先要开一个数据写入管理对象：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">writer = tensorboard.SummaryWriter(<span class="string">'./log/ResNet-CIFAR10/'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>入参显然就是一个路径，指定要存储的数据在硬盘上的位置。接着，就可以调用相应的<code>add_type</code>接口将想要的数据存储起来了：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 数值类</span></span><br><span class="line">writer.add_scalar(<span class="string">"准确度"</span>, <span class="number">100</span> * correct / total, epoch)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 添加网络图</span></span><br><span class="line">writer.add_graph(net,(netInputBatch,))</span><br><span class="line"></span><br><span class="line"><span class="comment"># 添加图像</span></span><br><span class="line">writer.add_image(tag, img_tensor, global_step=<span class="literal">None</span>, walltime=<span class="literal">None</span>, dataformats=<span class="string">'CHW'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>笔者此次仅举例几个常用的API，其他建议读者直接查<a href="https://pytorch.org/docs/stable/tensorboard.html" target="_blank" rel="noopener">官方文档</a>。若训练完成或其他不需要继续记录数据的时候，可安全地关闭数据管理对象：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">writer.close()</span><br></pre></td></tr></table></figure>
+
+<p>接着，就是一个很香的部分了——以网页方式查看存储的数据。在命令行终端上运行：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tensorboard --logdir&#x3D;.&#x2F;log&#x2F;ResNet-CIFAR10&#x2F; --port 8686</span><br></pre></td></tr></table></figure>
+
+<p>然后就可以在浏览器中输入对应的网址和端口了：</p>
+<p><img src="https://gitee.com/studyHooligen/blogImage/raw/master/20210917/20210917-NN-3.png" alt="cmd"></p>
+<p><img src="https://gitee.com/studyHooligen/blogImage/raw/master/20210917/20210917-NN-4.png" alt="tensorBoard"></p>
+<p>这使得我们可以很方便地查看非本地训练时远程负责科学计算的服务器上的模型状况。</p>
+<h3 id="自动学习率调整器"><a href="#自动学习率调整器" class="headerlink" title="自动学习率调整器"></a>自动学习率调整器</h3><p>笔者从一个专门做深度学习的朋友了解到，虽然Adam等优化算法已经非常好用了，但是模型训练达到瓶颈后，工程上大牛还是会使用最原始的<code>SGD</code>并手动调整学习率以达到更好的效果。</p>
+<p>根据我们对梯度下降的场分析可以知道，学习率太大的话，模型无法下降到最低点或稳定停在最低点，而是在附近震荡。所以，我们手动调整时，最直接的逻辑就是目前采用的学习率使得网络效果不再增加时，就适量减少学习率（减少多少就看经验了）。</p>
+<p>pytorch中提供了这样一个逻辑的自动学习率调整器，使用方法非常简单：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">optimizer = torch.optim.SGD(model.parameters(), lr=<span class="number">0.1</span>, momentum=<span class="number">0.9</span>)</span><br><span class="line">scheduler = ReduceLROnPlateau(optimizer, <span class="string">'min'</span>)</span><br><span class="line"><span class="keyword">for</span> epoch <span class="keyword">in</span> range(<span class="number">10</span>):</span><br><span class="line">    <span class="comment"># 模型前向及方向传播（梯度求解</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 不直接使用优化器，而是使用调整器</span></span><br><span class="line">    scheduler.step(val_loss)</span><br></pre></td></tr></table></figure>
 
       
       <!-- reward -->
@@ -180,7 +234,7 @@
     <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
     <p>扫一扫，分享到微信</p>
     <div class="wx-qrcode">
-      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://yoursite.com/2021/09/16/NeuralNetWork-Optimizer/" alt="微信分享二维码">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://yoursite.com/2021/09/17/NeuralNetWork-Optimizer/" alt="微信分享二维码">
     </div>
 </div>
 
